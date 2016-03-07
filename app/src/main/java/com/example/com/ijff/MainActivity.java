@@ -5,92 +5,77 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.ListView;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.util.HashMap;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    private HashMap<String, String> dictionary;
-    public static String DICT_FILE_NAME = "my_dictionary.txt";
-    public static boolean dictUpdated;
-    private BufferedReader reader;
-    private static final int REQ_CODE_ADD_ITEM = 1234;
+    private ListView obj;
+    DBHelper mydb;
+    public ArrayAdapter arrayAdapter;
+    public boolean itemChanged = false;
+    public static final int REQ_CODE_DISPLAY_ITEM = 1234;
+    String itemText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        dictUpdated = true;
-        dictionary = new HashMap<>();
-        readAllDefinitions();
-    }
-
-    private void readAllDefinitions() {
-        if (dictionary == null) {
-            Toast.makeText(this, "Null dictionary passed!", Toast.LENGTH_SHORT).show();
-            dictUpdated = false;
-        }
-
-        FileInputStream f;
-        try {
-            f = openFileInput(DICT_FILE_NAME);
-            reader = new BufferedReader(new InputStreamReader(f));
-
-            String line = reader.readLine();
-            while(line != null) {
-                String[] pieces;
-                pieces = line.split("\t");
-                if (pieces.length >= 2) {
-                    dictionary.put(pieces[0], pieces[1]);
-                }
-                Log.d("info", line);
-                line = reader.readLine();
-            }
-            f.close();
-        } catch (Exception e) {
-            Toast.makeText(this, "Error opening file for read", Toast.LENGTH_SHORT).show();
-        }
+        mydb = new DBHelper(this);
     }
 
     public void searchItemButtonClick(View view) {
-        if (dictionary == null || dictUpdated) {
-            dictionary = new HashMap<>();
-            readAllDefinitions();
-        }
+        EditText searchString = (EditText) findViewById(R.id.searchString);
+        String search_string = searchString.getText().toString();
+        Log.wtf("mainActivity", "sear Item: Search string is " + search_string);
 
-        EditText keyword = (EditText)findViewById(R.id.searchString);
-        String key = keyword.getText().toString();
+        ListView listView1 = (ListView) findViewById(R.id.listview1);
 
-        String defn = dictionary.get(key);
-        TextView definition = (TextView)findViewById(R.id.definition);
-        if (defn == null) {
-            definition.setText("word not found!");
-        } else {
-            Log.i("info", "Found key=" + key + "def=" + defn);
-            definition.setText(defn);
-        }
+        //Cursor res = mydb.getData(search_string);
+
+        ArrayList arrayList = mydb.getAllInfo(search_string);
+        //ArrayList arrayList = mydb.getAllInfo(null);
+
+        arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayList);
+
+        listView1.setAdapter(arrayAdapter);
+        listView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                itemText = parent.getItemAtPosition(position).toString();
+                Log.wtf("main_activity: ", "You clicked " + itemText);
+                //Toast.makeText(this, "You clicked " + itemText, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(getApplicationContext(), DisplayInfoPage.class);
+                intent.putExtra("searchString", itemText);
+                startActivityForResult(intent, REQ_CODE_DISPLAY_ITEM);
+            }
+        });
     }
 
     public void AddItemMainButtonClick(View view) {
         Intent intent = new Intent(this, AddItemActivity.class);
-        startActivityForResult(intent, REQ_CODE_ADD_ITEM);
+        startActivity(intent);
+    }
+
+    public void updateListItems() {
+        arrayAdapter.remove(itemText);
+        arrayAdapter.notifyDataSetChanged();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_CODE_ADD_ITEM &&
-                resultCode == RESULT_OK) {
-            String word = data.getStringExtra("word");
-            String val = data.getStringExtra("value");
-
-            Toast.makeText(this, "word is " + word + "def is " + val, Toast.LENGTH_SHORT).show();
+        Log.wtf("mainlog:", "Activity finished: result code = " + resultCode);
+        switch (requestCode) {
+            case REQ_CODE_DISPLAY_ITEM:
+                if (resultCode == RESULT_CANCELED) {
+                    Log.wtf("mainlog:", "Activity finished: Updating list... result code = " + resultCode);
+                    updateListItems();
+                }
+                break;
         }
     }
 }
