@@ -16,8 +16,8 @@ public class MainActivity extends AppCompatActivity {
     private ListView obj;
     DBHelper mydb;
     public ArrayAdapter arrayAdapter;
-    public boolean itemChanged = false;
     public static final int REQ_CODE_DISPLAY_ITEM = 1234;
+    public static final int REQ_CODE_ADD_ITEM = 2345;
     String itemText;
 
     @Override
@@ -33,7 +33,6 @@ public class MainActivity extends AppCompatActivity {
         Log.wtf("mainActivity", "sear Item: Search string is " + search_string);
 
         ListView listView1 = (ListView) findViewById(R.id.listview1);
-
         //Cursor res = mydb.getData(search_string);
 
         ArrayList arrayList = mydb.getAllInfo(search_string);
@@ -57,11 +56,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void AddItemMainButtonClick(View view) {
         Intent intent = new Intent(this, AddItemActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, REQ_CODE_ADD_ITEM);
     }
 
-    public void updateListItems() {
-        arrayAdapter.remove(itemText);
+    public void updateListItems(boolean has_added, String itemText) {
+        if (has_added == true) {
+            arrayAdapter.remove(itemText);
+        } else {
+            arrayAdapter.add(itemText);
+        }
         arrayAdapter.notifyDataSetChanged();
     }
 
@@ -72,8 +75,16 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQ_CODE_DISPLAY_ITEM:
                 if (resultCode == RESULT_CANCELED) {
-                    Log.wtf("mainlog:", "Activity finished: Updating list... result code = " + resultCode);
-                    updateListItems();
+                    Log.wtf("mainlog:", "Activity remove finished: Updating list... result code = " + resultCode);
+                    updateListItems(false, itemText);
+                }
+                break;
+            case REQ_CODE_ADD_ITEM:
+                if (resultCode == RESULT_OK) {
+                    String text = data.getStringExtra("addedString");
+                    Log.wtf("mainlog:", "Activity add finished: added = " + text + "... result code = " + resultCode);
+                    // ToDo: fix it
+                    //updateListItems(true, text);
                 }
                 break;
         }

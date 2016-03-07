@@ -1,5 +1,6 @@
 package com.example.com.ijff;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -28,5 +29,8 @@ public class AddItemActivity extends AppCompatActivity {
 
         Toast.makeText(getApplicationContext(), "Added entry " + keyword1, Toast.LENGTH_SHORT).show();
         dbHelper.close();
+        Intent intent = new Intent();
+        intent.putExtra("addedString", keyword1);
+        setResult(RESULT_OK,intent);
     }
 }
